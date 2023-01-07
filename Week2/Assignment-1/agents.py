@@ -32,6 +32,7 @@ class Agent:
 class GreedyAgent(Agent):
     def __init__(self, bandits: Bandit, initialQ : float) -> None:
         super().__init__(bandits)
+        
         # add any member variables you may require
         
     # implement
