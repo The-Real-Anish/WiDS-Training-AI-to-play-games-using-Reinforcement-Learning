@@ -24,6 +24,7 @@ The observation space of Mountation Car is an array of two variables: Position o
 Three actions are possible, as mentioned in documentation
 '''
 class QAgent:
+
     def __init__(self, env: str) -> None:
         self.env_name = env
         self.env = gym.make(env) 
@@ -67,7 +68,13 @@ class QAgent:
         
         Return a tuple containing the indices along each dimension
         '''
-        pass
+
+        XStep = (self.observation_space_high[0] - self.observation_space_low[0]) / self.discrete_sizes[0]
+        absc = int((state[0] - self.observation_space_low[0]) / XStep)
+        YStep = (self.observation_space_high[1] - self.observation_space_low[1]) / self.discrete_sizes[1]
+        ord = int((state[1] - self.observation_space_low[1]) / YStep)
+
+        return (absc, ord)
 
     def update(self, state, action, reward, next_state, is_terminal):
         '''
@@ -75,17 +82,27 @@ class QAgent:
         First discretize both the state and next_state to get indices in q-table.
         The boolean is_terminal here represents whether the state action pair resulted in termination (NOT TRUNCATION) of environment. In this case, update the value by considering max_a' q(s', a,) = 0 (consult theory for why) and not based on q-table.
         '''
+        #dis is discrete
+        dis_state = self.get_state_index(state)
+        dis_next_state = self.get_state_index(next_state)
+
         if is_terminal:
-            pass
+            self.q_table[dis_state[0], dis_state[1], action] += self.alpha*(reward - self.q_table[dis_state[0], dis_state[1], action])
+
         else:
-            pass
+            self.q_table[dis_state[0], dis_state[1], action] += self.alpha*(reward + self.gamma*np.max(self.q_table[dis_next_state[0], dis_next_state[1], :]) - self.q_table[dis_state[0], dis_state[1], action])
     
     def get_action(self):    
         '''
         Get the action either greedily, or randomly based on epsilon (You may use self.env.action_space.sample() to get a random action). Return an int representing action, based on self.state. Remember to discretize self.state first
         '''
-        pass
-    
+        dis_state = self.get_state_index(self.state)
+        length = len(self.q_table[dis_state[0], dis_state[1], :])
+        rand = np.random.binomial(1, self.epsilon)
+        if rand:
+            return self.env.action_space.sample()
+        else:
+            return np.argmax(self.q_table[dis_state[0], dis_state[1], :])
     
     def env_step(self):
         '''
@@ -106,7 +123,8 @@ class QAgent:
         done = False
         eval_state = eval_env.reset()[0]
         while not done:
-            action = None # Take action based on greedy strategy now
+            dis_state = self.get_state_index(eval_state)
+            action = np.argmax(self.q_table[dis_state[0], dis_state[1], :]) # Take action based on greedy strategy now
             next_state, reward, terminated, truncated, info = eval_env.step(action)
             
             eval_env.render() #Renders the environment on a window.
