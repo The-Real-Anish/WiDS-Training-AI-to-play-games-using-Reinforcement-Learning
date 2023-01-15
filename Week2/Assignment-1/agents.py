@@ -50,7 +50,7 @@ class GreedyAgent(Agent):
         
         self.action_counter[action] += 1
         # - - - - - - - - This part below is our initial_1_k
-        self.Q[action] += (1/self.action_counter[action])(reward - self.Q[action])
+        self.Q[action] += (1/self.action_counter[action])*(reward - self.Q[action])
         return
 
 class epsGreedyAgent(GreedyAgent):
@@ -63,7 +63,7 @@ class epsGreedyAgent(GreedyAgent):
     def action(self) -> int:
 
         o_action = super().action()
-        #We have probabilities and shit now
+        #We have stochastics!
         prob = np.full(self.banditN, (self.epsilon / (self.banditN - 1)))
         prob[o_action] = 1 - self.epsilon
 
@@ -95,21 +95,25 @@ class UCBAAgent(GreedyAgent):
 
 class GradientBanditAgent(Agent):
 
-    def __init__(self, bandits: Bandit, initial_1 : float, pref) -> None:
+    def __init__(self, bandits: Bandit, alpha : float, pref) -> None:
         
         super().__init__(bandits)
-        self.initial_1 = initial_1
+        self.alpha = alpha
         self.H = pref
+        #this is our average reward over time
+        self.R = 0
 
     def action(self) -> int:
         
-        #policy determined using softmax distribution
+        #softmax distribution preference
         return np.argmax( np.random.multinomial(1, np.exp(self.H)/ np.sum(np.exp(self.H)) ) )
 
     def update(self, action: int, reward: int) -> None:
 
-        self.H += self.initial_1*(reward - self.R) * (np.exp(self.H)/ np.sum(np.exp(self.H)) - np.eye(1, self.banditN, k=action)) 
-        self.R += (1/self.numiters) * (reward - self.R)
+        policy = np.exp(self.H)/np.sum(np.exp(self.H))
+
+        self.H += self.alpha * (reward - self.R) * (np.eye(1, self.banditN, k=action)[0] - policy)
+        self.R = (self.R * (self.numiters - 1) + reward)/self.numiters
 
 class ThompsonSamplerAgent(Agent):
 
@@ -142,5 +146,3 @@ class ThompsonSamplerAgent(Agent):
         else:
             self.initial_1[action] = self.initial_1[action]/np.sqrt(np.square(self.initial_1[action]) + 1)
             self.initial_2[action] = (reward*np.square(self.initial_1[action]) + self.initial_2[action])/(np.square(self.initial_1[action]) + 1)
-
-# Implement other subclasses if you want to try other strategies
