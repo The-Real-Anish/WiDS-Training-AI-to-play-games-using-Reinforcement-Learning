@@ -2,6 +2,8 @@ import gymnasium as gym
 import numpy as np
 import matplotlib.pyplot as plt
 
+print()
+
 '''
 The first task to work with a gym env is to initialise it using gym.make(name_of_env) and reset it using .reset() function. This resets the env to a starting position, with some noise in state. It returns a tuple of the initial state of environment and a dictionary containing info (Not important for the moment).
 
